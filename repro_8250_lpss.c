@@ -155,78 +155,52 @@ uint64_t r[3] = {0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff};
 
 void execute_one(void)
 {
-  intptr_t res = 0;
-  if (write(1, "executing program\n", sizeof("executing program\n") - 1)) {
-  }
-  //  openat$ttynull arguments: [
-  //    fd: const = 0xffffffffffffff9c (8 bytes)
-  //    file: ptr[in, buffer] {
-  //      buffer: {2f 64 65 76 2f 74 74 79 6e 75 6c 6c 00} (length 0xd)
-  //    }
-  //    flags: open_flags = 0x2000 (4 bytes)
-  //    mode: const = 0x0 (2 bytes)
-  //  ]
-  //  returns fd_tty
-  memcpy((void*)0x200000000780, "/dev/ttynull\000", 13);
-  res = syscall(__NR_openat, /*fd=*/0xffffffffffffff9cul,
-                /*file=*/0x200000000780ul, /*flags=FASYNC*/ 0x2000, /*mode=*/0);
-  if (res != -1)
-    r[0] = res;
-  //  ioctl$TIOCSETD arguments: [
-  //    fd: fd_tty (resource)
-  //    cmd: const = 0x5423 (4 bytes)
-  //    arg: ptr[in, int32] {
-  //      int32 = 0xf (4 bytes)
-  //    }
-  //  ]
-  *(uint32_t*)0x2000000001c0 = 0xf;
-  syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x5423, /*arg=*/0x2000000001c0ul);
-  //  syz_open_dev$tty20 arguments: [
-  //    dev: const = 0xc (8 bytes)
-  //    major: const = 0x4 (8 bytes)
-  //    minor: proc = 0x0 (8 bytes)
-  //  ]
-  //  returns fd_tty
-  res = -1;
-  res = syz_open_dev(/*dev=*/0xc, /*major=*/4, /*minor=*/0x14 + procid * 2);
-  if (res != -1)
-    r[1] = res;
-  //  ioctl$VT_ACTIVATE arguments: [
-  //    fd: fd_tty (resource)
-  //    cmd: const = 0x5606 (4 bytes)
-  //    arg: intptr = 0x2 (8 bytes)
-  //  ]
-  syscall(__NR_ioctl, /*fd=*/r[1], /*cmd=*/0x5606, /*arg=*/2ul);
-  //  ioctl$TIOCSIG arguments: [
-  //    fd: fd_tty (resource)
-  //    cmd: const = 0x400455c8 (4 bytes)
-  //    arg: intptr = 0x2 (8 bytes)
-  //  ]
-  syscall(__NR_ioctl, /*fd=*/r[0], /*cmd=*/0x400455c8, /*arg=*/2ul);
-  //  openat$ttynull arguments: [
-  //    fd: const = 0xffffffffffffff9c (8 bytes)
-  //    file: ptr[in, buffer] {
-  //      buffer: {2f 64 65 76 2f 74 74 79 6e 75 6c 6c 00} (length 0xd)
-  //    }
-  //    flags: open_flags = 0x80000 (4 bytes)
-  //    mode: const = 0x0 (2 bytes)
-  //  ]
-  //  returns fd_tty
-  memcpy((void*)0x200000000000, "/dev/ttynull\000", 13);
-  res = syscall(__NR_openat, /*fd=*/0xffffffffffffff9cul,
-                /*file=*/0x200000000000ul, /*flags=O_CLOEXEC*/ 0x80000,
-                /*mode=*/0);
-  if (res != -1)
-    r[2] = res;
-  //  ioctl$TIOCSTI arguments: [
-  //    fd: fd_tty (resource)
-  //    cmd: const = 0x5412 (4 bytes)
-  //    arg: ptr[in, int8] {
-  //      int8 = 0x12 (1 bytes)
-  //    }
-  //  ]
-  *(uint8_t*)0x200000000080 = 0x12;
-  syscall(__NR_ioctl, /*fd=*/r[2], /*cmd=*/0x5412, /*arg=*/0x200000000080ul);
+    intptr_t res = 0;
+    printf("--- Start executing program ---\n");
+
+    // 1.  /dev/ttynull
+    memcpy((void*)0x200000000780, "/dev/ttynull\000", 13);
+    res = syscall(__NR_openat, 0xffffffffffffff9cul, 0x200000000780ul, 0x2000, 0);
+    printf("openat(/dev/ttynull): res = %ld", res);
+    if (res == -1) printf(" (Error: %s)", strerror(errno));
+    printf("\n");
+    
+    if (res != -1) r[0] = res;
+
+    // 2. ioctl TIOCSETD 
+    *(uint32_t*)0x2000000001c0 = 0xf;
+    res = syscall(__NR_ioctl, r[0], 0x5423, 0x2000000001c0ul);
+    printf("ioctl(TIOCSETD): res = %ld\n", res);
+
+    // 3. syz_open_dev
+    res = syz_open_dev(0xc, 4, 0x14 + procid * 2);
+    printf("syz_open_dev(tty): res = %ld", res);
+    if (res == -1) printf(" (Error: %s)", strerror(errno));
+    printf("\n");
+    
+    if (res != -1) r[1] = res;
+
+    // 4. ioctl VT_ACTIVATE
+    res = syscall(__NR_ioctl, r[1], 0x5606, 2ul);
+    printf("ioctl(VT_ACTIVATE): res = %ld\n", res);
+
+    // 5. ioctl TIOCSIG
+    res = syscall(__NR_ioctl, r[0], 0x400455c8, 2ul);
+    printf("ioctl(TIOCSIG): res = %ld\n", res);
+
+    // 6. 打开 /dev/ttynull (O_CLOEXEC)
+    memcpy((void*)0x200000000000, "/dev/ttynull\000", 13);
+    res = syscall(__NR_openat, 0xffffffffffffff9cul, 0x200000000000ul, 0x80000, 0);
+    printf("openat(/dev/ttynull, O_CLOEXEC): res = %ld\n", res);
+    
+    if (res != -1) r[2] = res;
+
+    // 7. ioctl TIOCSTI 
+    *(uint8_t*)0x200000000080 = 0x12;
+    res = syscall(__NR_ioctl, r[2], 0x5412, 0x200000000080ul);
+    printf("ioctl(TIOCSTI): res = %ld\n", res);
+    
+    printf("--- End iteration ---\n\n");
 }
 int main(void)
 {
