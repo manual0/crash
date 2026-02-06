@@ -297,7 +297,7 @@ void execute_call(int call)
     //  returns fd_dri
     memcpy((void*)0x200000000000, "/dev/dri/card#\000", 15);
     res = -1;
-    res = syz_open_dev(/*dev=*/0x200000000000, /*id=*/2,
+    res = syz_open_dev(/*dev=*/0x200000000000, /*id=*/0,
                        /*flags=O_NOFOLLOW|O_WRONLY*/ 0x20001);
     if (res != -1)
       r[0] = res;
